@@ -9,13 +9,6 @@ import tempfile
 import shutil
 
 
-def create_temporary_copy(path):
-    temp_dir = tempfile.gettempdir()
-    temp_path = os.path.join(temp_dir, 'temp_file_name')
-    shutil.copy2(path, temp_path)
-    return temp_path
-
-
 class PNGExport(inkex.Effect):
     def __init__(self):
         """init the effetc library and get options from gui"""
@@ -25,19 +18,26 @@ class PNGExport(inkex.Effect):
     def effect(self):
         output_path = self.options.path
         curfile = self.args[-1]
-        layer_ids = self.get_layer_ids(curfile)
+        layers = self.get_layers(curfile)
 
-        for layer_id in layer_ids:
-            hide_layer_ids = set(layer_ids)
-            hide_layer_ids.remove(layer_id)
-            hide_layer_ids = list(hide_layer_ids)
-            show_layer_ids = [layer_id]
-            layer_dest_svg_path = curfile + layer_id + ".svg"
-            layer_dest_png_path = output_path + layer_id + ".png"
-            self.export_layers(curfile, layer_dest_svg_path, hide_layer_ids, show_layer_ids)
+        for (layer_id, layer_label, layer_type) in layers:
+            if layer_type == "fixed":
+                continue
+
+            show_layer_ids = [layer[0] for layer in layers if layer[2] == "fixed" or layer[0] == layer_id]
+
+            if not os.path.exists(os.path.join(output_path, curfile)):
+                os.makedirs(os.path.join(output_path, curfile))
+
+            layer_dest_svg_path = os.path.join(output_path, curfile, layer_label + ".svg")
+            layer_dest_png_path = os.path.join(output_path, curfile, layer_label + ".png")
+
+            self.export_layers(curfile, layer_dest_svg_path, show_layer_ids)
             self.exportPage(layer_dest_svg_path, layer_dest_png_path)
 
-    def export_layers(self, src, dest, hide, show):
+            os.unlink(layer_dest_svg_path)
+
+    def export_layers(self, src, dest, show):
         """
         Export selected layers of SVG in the file `src` to the file `dest`.
         :arg  str    src:  path of the source SVG file.
@@ -45,26 +45,41 @@ class PNGExport(inkex.Effect):
         :arg  list  hide:  layers to hide. each element is a string.
         :arg  list  show:  layers to show. each element is a string.
         """
-        for layer in self.document.xpath('//svg:g', namespaces=inkex.NSS):
+        for layer in self.document.xpath('//svg:g[@inkscape:groupmode="layer"]', namespaces=inkex.NSS):
+            layer.attrib['style'] = 'display:none'
             id = layer.attrib["id"]
-            if id in hide:
-                layer.attrib['style'] = 'display:none'
-            elif id in show:
+            if id in show:
                 layer.attrib['style'] = 'display:inline'
 
         self.document.write(dest)
 
-    def get_layer_ids(self, src):
-        layers = self.document.xpath('//svg:g', namespaces=inkex.NSS)
-        layer_ids = []
-        for layer in layers:
-            layer_id = layer.attrib["id"]
-            layer_ids.append(layer_id)
+    def get_layers(self, src):
+        svg_layers = self.document.xpath('//svg:g[@inkscape:groupmode="layer"]', namespaces=inkex.NSS)
+        layers = []
 
-        return layer_ids
+        for layer in svg_layers:
+            label_attrib_name = "{%s}label" % layer.nsmap['inkscape']
+            if label_attrib_name not in layer.attrib:
+                continue
+
+            layer_id = layer.attrib["id"]
+            layer_label = layer.attrib[label_attrib_name]
+
+            if layer_label.startswith("[fixed] "):
+                layer_type = "fixed"
+                layer_label = layer_label[8:]
+            elif layer_label.startswith("[export] "):
+                layer_type = "export"
+                layer_label = layer_label[9:]
+            else:
+                continue
+
+            layers.append([layer_id, layer_label, layer_type])
+
+        return layers
 
     def exportPage(self, svg_path, output_path):
-        command = "inkscape -C -e \"%s\" %s" % (output_path, svg_path)
+        command = "inkscape -C -e \"%s\" \"%s\"" % (output_path, svg_path)
         p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         p.wait()
 
