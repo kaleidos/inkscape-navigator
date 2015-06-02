@@ -1,17 +1,17 @@
-    <inkscape-extension>
-        <_name>Layers export</_name>
-        <id>id.giac.export.jpg</id>
-        <dependency type="executable" location="extensions">split_layers_export.py</dependency>
-		<param name="help" type="description">Split your file in different png files by layer</param>
-        <param name="path" type="string"  _gui-text="Export path">~</param>
-        <effect needs-live-preview="false">
-            <object-type>all</object-type>            
-            <effects-menu>
-                <submenu _name="Layers export" />
-            </effects-menu>
-        </effect>
-        <script>
-            <command reldir="extensions" interpreter="python">split_layers_export.py</command>
-        </script>
-    </inkscape-extension>
-
+<?xml version="1.0" encoding="UTF-8"?>
+<inkscape-extension xmlns="http://www.inkscape.org/namespace/inkscape/extension">
+    <_name>Layers export</_name>
+    <id>net.kaleidos.export.layers</id>
+    <dependency type="executable" location="extensions">split_layers_export.py</dependency>
+	<param name="help" type="description">Split your file in different png files by layer</param>
+    <param name="path" type="string"  _gui-text="Export path">~</param>
+    <effect needs-live-preview="false">
+        <object-type>all</object-type>
+        <effects-menu>
+            <submenu _name="Export" />
+        </effects-menu>
+    </effect>
+    <script>
+        <command reldir="extensions" interpreter="python">split_layers_export.py</command>
+    </script>
+</inkscape-extension>
