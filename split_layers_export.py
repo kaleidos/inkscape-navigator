@@ -19,6 +19,7 @@ class PNGExport(inkex.Effect):
         output_path = self.options.path
         curfile = self.args[-1]
         layers = self.get_layers(curfile)
+        counter = 1
 
         for (layer_id, layer_label, layer_type) in layers:
             if layer_type == "fixed":
@@ -29,13 +30,14 @@ class PNGExport(inkex.Effect):
             if not os.path.exists(os.path.join(output_path, curfile)):
                 os.makedirs(os.path.join(output_path, curfile))
 
-            layer_dest_svg_path = os.path.join(output_path, curfile, layer_label + ".svg")
-            layer_dest_png_path = os.path.join(output_path, curfile, layer_label + ".png")
+            layer_dest_svg_path = os.path.join(output_path, curfile, "%s.svg" % layer_label)
+            layer_dest_png_path = os.path.join(output_path, curfile, "%s - %s.png" % (str(counter).zfill(3), layer_label))
 
             self.export_layers(curfile, layer_dest_svg_path, show_layer_ids)
             self.exportPage(layer_dest_svg_path, layer_dest_png_path)
 
             os.unlink(layer_dest_svg_path)
+            counter += 1
 
     def export_layers(self, src, dest, show):
         """
